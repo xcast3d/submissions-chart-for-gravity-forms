@@ -1,0 +1,8 @@
+# Excluded from the release zip built by bin/build-zip.sh (git archive)
+/.docker          export-ignore
+/bin              export-ignore
+/docker-compose.yml export-ignore
+/.gitignore       export-ignore
+/.gitattributes   export-ignore
+/README.md        export-ignore
+/CLAUDE.md        export-ignore

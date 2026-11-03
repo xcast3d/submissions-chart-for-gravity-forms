@@ -1,0 +1,5 @@
+# Licensed third-party plugins for the Docker site (see bin/setup.sh)
+/.docker/
+/dist/
+.DS_Store
+.env
