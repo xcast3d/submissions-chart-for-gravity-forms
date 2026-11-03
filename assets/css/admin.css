@@ -2,14 +2,34 @@
 
 /* ── Page layout ─────────────────────────────────────────────── */
 
-.gfsc-page #gfsc-chart-card {
-    max-width: 69.5rem;
-    margin-top: 16px;
+/* Centering comes from GF's .gform-settings__wrapper (max-width 69.5rem, auto margins). */
+.gfsc-content {
+    display: flex;
+    flex-direction: column;
+    gap: 24px;
 }
 
-/* ── Chart wrapper ───────────────────────────────────────────── */
+.gfsc-page-title {
+    margin: 0;
+    padding: 0;
+    font-size: 23px;
+    font-weight: 400;
+}
 
-#gfsc-chart-card {
+.gfsc-content > .wp-header-end {
+    display: none;
+}
+
+.gfsc-section-title {
+    margin: 8px 0 -8px;
+    font-size: 16px;
+    font-weight: 600;
+    color: #1d2327;
+}
+
+/* ── Cards ──────────────────────────────────────────────────── */
+
+.gfsc-card {
     background: #fff;
     border: 1px solid #c3c4c7;
     border-radius: 4px;
@@ -17,6 +37,130 @@
     padding: 20px 24px;
     min-width: 0;
     overflow: hidden;
+}
+
+.gfsc-card[hidden] {
+    display: none;
+}
+
+.gfsc-card-head {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 12px;
+    margin-bottom: 12px;
+}
+
+.gfsc-card-head h2,
+.gfsc-card-head h3 {
+    margin: 0;
+    font-size: 14px;
+    font-weight: 600;
+    color: #1d2327;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.gfsc-card-head a {
+    font-size: 12px;
+    white-space: nowrap;
+}
+
+.gfsc-hint {
+    margin: 8px 0 0;
+    font-size: 12px;
+    color: #646970;
+}
+
+/* ── Tables ─────────────────────────────────────────────────── */
+
+.gfsc-table {
+    border-radius: 4px;
+    table-layout: fixed;
+}
+
+.gfsc-table td,
+.gfsc-table th {
+    padding: 8px 10px;
+    font-size: 13px;
+    vertical-align: middle;
+}
+
+.gfsc-table td {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.gfsc-table .gfsc-col-date {
+    width: 45%;
+}
+
+.gfsc-table td.gfsc-col-date {
+    color: #646970;
+}
+
+.gfsc-table .gfsc-col-time {
+    width: 90px;
+}
+
+.gfsc-table .gfsc-col-form {
+    width: 35%;
+}
+
+.gfsc-table .gfsc-col-action {
+    width: 48px;
+    text-align: right;
+}
+
+/* ── Recent submissions grid ────────────────────────────────── */
+
+#gfsc-recent {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 24px;
+}
+
+.gfsc-recent-card {
+    padding: 16px 20px;
+}
+
+.gfsc-card-empty {
+    margin: 0;
+    padding: 16px 0;
+    color: #646970;
+    font-style: italic;
+}
+
+/* ── Day drill-down ─────────────────────────────────────────── */
+
+#gfsc-day-close {
+    color: #646970;
+    text-decoration: none;
+}
+
+#gfsc-day-close:hover {
+    color: #1d2327;
+}
+
+#gfsc-day-forms {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px 20px;
+    margin: 0 0 12px;
+}
+
+#gfsc-day-forms li {
+    margin: 0;
+}
+
+#gfsc-day-forms .count {
+    color: #646970;
+}
+
+#gfsc-day-note {
+    margin: 0 0 12px;
 }
 
 /* ── Header ─────────────────────────────────────────────────── */
@@ -214,7 +358,11 @@
 /* ── Responsive ──────────────────────────────────────────────── */
 
 @media ( max-width: 782px ) {
-    #gfsc-chart-card {
+    #gfsc-recent {
+        grid-template-columns: minmax(0, 1fr);
+    }
+
+    .gfsc-card {
         padding: 14px 16px;
     }
 

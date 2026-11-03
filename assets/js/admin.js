@@ -5,6 +5,7 @@
 	const i18n = GFSC.i18n;
 
 	let chartInstance = null;
+	let chartDays     = [];
 	let currentRange  = '30';
 	let formId        = 0;
 
@@ -30,6 +31,7 @@
 			$select.val( formId );
 		}
 
+		filterRecentCards();
 		loadChart();
 	} );
 
@@ -37,6 +39,8 @@
 
 	$select.on( 'change', function () {
 		formId = parseInt( $( this ).val(), 10 ) || 0;
+		filterRecentCards();
+		closeDay();
 		if ( currentRange === 'custom' ) {
 			$( '#gfsc-apply-custom' ).trigger( 'click' );
 		} else {
@@ -125,6 +129,7 @@
 
 		$empty.prop( 'hidden', true );
 		$canvas.show();
+		chartDays = data.labels;
 
 		if ( chartInstance ) {
 			chartInstance.destroy();
@@ -151,6 +156,17 @@
 			options: {
 				responsive:          true,
 				maintainAspectRatio: false,
+				// Clicks anywhere in a day's column count, not just on the bar itself.
+				interaction: { mode: 'index', intersect: false },
+				onClick: ( event, elements ) => {
+					if ( elements.length && data.counts[ elements[ 0 ].index ] > 0 ) {
+						openDay( chartDays[ elements[ 0 ].index ] );
+					}
+				},
+				onHover: ( event, elements ) => {
+					const clickable = elements.length && data.counts[ elements[ 0 ].index ] > 0;
+					event.native.target.style.cursor = clickable ? 'pointer' : 'default';
+				},
 				animation: {
 					duration: 400,
 					easing:   'easeOutQuart',
@@ -195,6 +211,94 @@
 		} );
 	}
 
+	// ── Day drill-down ─────────────────────────────────────────────────────────
+
+	const $day = $( '#gfsc-day' );
+
+	$( '#gfsc-day-close' ).on( 'click', closeDay );
+
+	// A single form maps straight onto GF's Entries list filtered by date; across
+	// forms GF has no combined view, so list that day's entries here instead.
+	function openDay( date ) {
+		if ( formId ) {
+			window.location.href = entriesUrl( formId, date );
+			return;
+		}
+
+		$( '#gfsc-day-title' ).text( '…' );
+		$( '#gfsc-day-forms, #gfsc-day-rows' ).empty();
+		$( '#gfsc-day-note' ).prop( 'hidden', true );
+		$day.prop( 'hidden', false );
+
+		$.post( GFSC.ajaxUrl, {
+			action:  'gfsc_get_day',
+			nonce:   GFSC.nonce,
+			form_id: formId,
+			date:    date,
+		} )
+			.done( function ( response ) {
+				if ( response.success ) {
+					renderDay( response.data );
+				} else {
+					$( '#gfsc-day-title' ).text( response.data || i18n.loadError );
+				}
+			} )
+			.fail( function () {
+				$( '#gfsc-day-title' ).text( i18n.networkErr );
+			} );
+
+		$day[ 0 ].scrollIntoView( { behavior: 'smooth', block: 'nearest' } );
+	}
+
+	function renderDay( data ) {
+		$( '#gfsc-day-title' ).text(
+			sprintf( i18n.dayTitle, data.label ) + ` · ${ data.total.toLocaleString() } ${ data.total === 1 ? i18n.submission : i18n.submissions }`
+		);
+
+		const $forms = $( '#gfsc-day-forms' );
+		data.forms.forEach( function ( form ) {
+			$forms.append(
+				$( '<li>' ).append(
+					$( '<a>' ).attr( 'href', form.url ).text( sprintf( i18n.openEntries, form.title ) ),
+					$( '<span class="count">' ).text( ` (${ form.count.toLocaleString() })` )
+				)
+			);
+		} );
+
+		const $rows = $( '#gfsc-day-rows' );
+		data.entries.forEach( function ( entry ) {
+			$rows.append(
+				$( '<tr>' ).append(
+					$( '<td class="gfsc-col-date">' ).text( entry.date ),
+					$( '<td>' ).text( entry.form_title ),
+					$( '<td>' ).text( entry.summary || `#${ entry.id }` ),
+					$( '<td class="gfsc-col-action">' ).append( $( '<a>' ).attr( 'href', entry.url ).text( i18n.view ) )
+				)
+			);
+		} );
+
+		if ( data.truncated ) {
+			$( '#gfsc-day-note' ).text( sprintf( i18n.truncated, data.entries.length, data.total ) ).prop( 'hidden', false );
+		}
+	}
+
+	function closeDay() {
+		$day.prop( 'hidden', true );
+	}
+
+	function entriesUrl( id, date ) {
+		const params = new URLSearchParams( { page: 'gf_entries', id: id, field_id: 'date_created', operator: 'is', s: date } );
+		return `${ GFSC.adminUrl }?${ params }`;
+	}
+
+	// ── Recent submissions ─────────────────────────────────────────────────────
+
+	function filterRecentCards() {
+		$( '.gfsc-recent-card' ).each( function () {
+			$( this ).prop( 'hidden', formId !== 0 && parseInt( $( this ).data( 'form-id' ), 10 ) !== formId );
+		} );
+	}
+
 	// ── UI helpers ─────────────────────────────────────────────────────────────
 
 	function showLoading() {
@@ -215,6 +319,12 @@
 	}
 
 	// ── Utility ────────────────────────────────────────────────────────────────
+
+	// Minimal %s / %1$s replacement for the translated strings from PHP.
+	function sprintf( format, ...args ) {
+		let i = 0;
+		return format.replace( /%(?:(\d+)\$)?[sd]/g, ( match, pos ) => String( args[ pos ? pos - 1 : i++ ] ) );
+	}
 
 	function formatLabel( dateStr ) {
 		const [ y, m, d ] = dateStr.split( '-' );

@@ -19,6 +19,15 @@ class GFSC_Admin {
 		add_filter( 'gform_addon_navigation', array( __CLASS__, 'register_menu' ) );
 		add_action( 'admin_enqueue_scripts', array( __CLASS__, 'enqueue_assets' ) );
 		add_action( 'wp_ajax_gfsc_get_data', array( __CLASS__, 'ajax_get_data' ) );
+		add_action( 'wp_ajax_gfsc_get_day', array( __CLASS__, 'ajax_get_day' ) );
+		add_filter( 'admin_body_class', array( __CLASS__, 'body_class' ) );
+	}
+
+	/**
+	 * GF scopes much of its admin styling to body.gform-admin.
+	 */
+	public static function body_class( $classes ) {
+		return self::is_chart_page() ? $classes . ' gform-admin gform-admin-screen' : $classes;
 	}
 
 	/**
@@ -44,7 +53,8 @@ class GFSC_Admin {
 			return;
 		}
 
-		wp_enqueue_style( 'gfsc-admin', GFSC_PLUGIN_URL . 'assets/css/admin.css', array(), GFSC_VERSION );
+		// Reuse Gravity Forms' admin + settings styles for its header and centered page wrapper.
+		wp_enqueue_style( 'gfsc-admin', GFSC_PLUGIN_URL . 'assets/css/admin.css', array( 'gform_admin', 'gform_settings' ), GFSC_VERSION );
 		wp_enqueue_script( 'gfsc-chartjs', GFSC_PLUGIN_URL . 'assets/vendor/chartjs/chart.umd.min.js', array(), '4.4.3', true );
 		wp_enqueue_script( 'gfsc-admin', GFSC_PLUGIN_URL . 'assets/js/admin.js', array( 'jquery', 'gfsc-chartjs' ), GFSC_VERSION, true );
 
@@ -62,10 +72,11 @@ class GFSC_Admin {
 			'gfsc-admin',
 			'GFSC',
 			array(
-				'ajaxUrl' => admin_url( 'admin-ajax.php' ),
-				'nonce'   => wp_create_nonce( self::NONCE ),
-				'forms'   => array_values( $forms ),
-				'i18n'    => array(
+				'ajaxUrl'  => admin_url( 'admin-ajax.php' ),
+				'adminUrl' => admin_url( 'admin.php' ),
+				'nonce'    => wp_create_nonce( self::NONCE ),
+				'forms'    => array_values( $forms ),
+				'i18n'     => array(
 					'allForms'    => __( 'All forms', 'submissions-chart-for-gf' ),
 					'loadError'   => __( 'Failed to load chart data.', 'submissions-chart-for-gf' ),
 					'networkErr'  => __( 'Network error loading chart.', 'submissions-chart-for-gf' ),
@@ -73,6 +84,10 @@ class GFSC_Admin {
 					'badRange'    => __( 'Start date must be on or before end date.', 'submissions-chart-for-gf' ),
 					'submission'  => __( 'submission', 'submissions-chart-for-gf' ),
 					'submissions' => __( 'submissions', 'submissions-chart-for-gf' ),
+					'dayTitle'    => __( 'Submissions on %s', 'submissions-chart-for-gf' ),
+					'openEntries' => __( 'Open %s in Entries', 'submissions-chart-for-gf' ),
+					'truncated'   => __( 'Showing the latest %1$d of %2$d. Use the Entries links to see the rest.', 'submissions-chart-for-gf' ),
+					'view'        => __( 'View', 'submissions-chart-for-gf' ),
 				),
 			)
 		);
@@ -112,6 +127,28 @@ class GFSC_Admin {
 		// phpcs:enable
 
 		wp_send_json_success( GFSC_Data::submissions_by_day( $form_id, $start, $end ) );
+	}
+
+	/**
+	 * Entries for a single local day, across all forms or one form.
+	 */
+	public static function ajax_get_day() {
+		check_ajax_referer( self::NONCE, 'nonce' );
+
+		if ( ! GFCommon::current_user_can_any( self::CAPABILITY ) ) {
+			wp_send_json_error( __( 'Unauthorized', 'submissions-chart-for-gf' ), 403 );
+		}
+
+		// phpcs:disable WordPress.Security.NonceVerification.Missing -- verified above.
+		$form_id = isset( $_POST['form_id'] ) ? absint( $_POST['form_id'] ) : 0;
+		$date    = isset( $_POST['date'] ) ? self::sanitize_date( wp_unslash( $_POST['date'] ) ) : null;
+		// phpcs:enable
+
+		if ( ! $date ) {
+			wp_send_json_error( __( 'Invalid date.', 'submissions-chart-for-gf' ) );
+		}
+
+		wp_send_json_success( GFSC_Data::entries_for_day( $form_id, $date ) );
 	}
 
 	/**

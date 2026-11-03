@@ -7,6 +7,9 @@ Adds a **Forms → Submissions Chart** page to the Gravity Forms admin menu with
 - Timezone-aware (buckets by the site timezone; GF stores entries in UTC)
 - Zero-filled days so the x-axis stays continuous
 - Bar colour follows the WP admin colour scheme
+- Click a day: with one form selected it opens GF's Entries list filtered to that date; with **All forms** it opens a panel listing that day's entries across forms, with per-form "Open in Entries" links
+- **Recent Submissions**: a 2-column grid with one card per form showing its last 5 entries. Each entry is labelled by the form's first Name field, else the first field labelled "name", else the first field that stores a value
+- Laid out like Gravity Forms' own admin pages (logo header, centered content)
 - Chart.js 4.4.3 bundled locally (no CDN)
 
 Assets load only on the plugin's own page, so the Forms list and form editor are untouched.
