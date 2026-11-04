@@ -25,10 +25,10 @@ WordPress 5.8+, PHP 7.4+, Gravity Forms 2.5+. The plugin is an independent add-o
 Requires Docker Desktop.
 
 ```bash
-./bin/setup.sh ~/Downloads/gravityforms_2.8.4.zip
+./bin/setup.sh path/to/gravityforms.zip
 ```
 
-This extracts Gravity Forms into the git-ignored `.docker/plugins/`, starts WordPress + MariaDB, installs WordPress, activates both plugins and seeds four sample forms with ~120 days of back-dated entries.
+This starts WordPress + MariaDB, installs WordPress and the Gravity Forms zip you pass, activates both plugins and seeds four sample forms with ~120 days of back-dated entries. Gravity Forms lives in the site's Docker volume, so it can be licensed and updated from wp-admin as usual. The zip is never committed.
 
 | | |
 |---|---|

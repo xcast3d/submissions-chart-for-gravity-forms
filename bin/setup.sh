@@ -4,8 +4,8 @@
 #   ./bin/setup.sh [path/to/gravityforms.zip]
 #
 # Gravity Forms is a licensed plugin, so it is never committed. Pass its zip
-# (defaults to the newest ~/Downloads/gravityforms_*.zip); it is extracted into
-# .docker/plugins/ which is git-ignored and mounted into the container.
+# (defaults to the newest ~/Downloads/gravityforms_*.zip). It's installed into the
+# site's Docker volume, not a bind mount, so WordPress can update it normally.
 set -euo pipefail
 cd "$(dirname "$0")/.."
 
@@ -16,16 +16,6 @@ ADMIN_PASS="${WP_ADMIN_PASS:-admin}"
 ADMIN_EMAIL="${WP_ADMIN_EMAIL:-admin@example.test}"
 
 GF_ZIP="${1:-$(ls -t "$HOME"/Downloads/gravityforms_*.zip 2>/dev/null | head -1 || true)}"
-if [ ! -f .docker/plugins/gravityforms/gravityforms.php ]; then
-	if [ -z "$GF_ZIP" ] || [ ! -f "$GF_ZIP" ]; then
-		echo "Gravity Forms zip not found. Usage: ./bin/setup.sh path/to/gravityforms.zip" >&2
-		exit 1
-	fi
-	echo "→ Extracting $(basename "$GF_ZIP")"
-	mkdir -p .docker/plugins
-	unzip -q -o "$GF_ZIP" -d .docker/plugins
-fi
-
 echo "→ Starting containers"
 docker compose up -d --wait
 
@@ -39,6 +29,17 @@ if ! wp core is-installed >/dev/null 2>&1; then
 	wp core install --url="$WP_URL" --title="GF Submissions Chart Dev" \
 		--admin_user="$ADMIN_USER" --admin_password="$ADMIN_PASS" \
 		--admin_email="$ADMIN_EMAIL" --skip-email
+fi
+
+if ! wp plugin is-installed gravityforms >/dev/null 2>&1; then
+	if [ -z "$GF_ZIP" ] || [ ! -f "$GF_ZIP" ]; then
+		echo "Gravity Forms zip not found. Usage: ./bin/setup.sh path/to/gravityforms.zip" >&2
+		exit 1
+	fi
+	echo "→ Installing $(basename "$GF_ZIP")"
+	docker compose cp "$GF_ZIP" wordpress:/var/www/html/wp-content/gravityforms-install.zip
+	wp plugin install wp-content/gravityforms-install.zip
+	docker compose exec -T wordpress rm -f wp-content/gravityforms-install.zip
 fi
 
 wp plugin activate gravityforms submission-chart-add-on-for-gravity-forms

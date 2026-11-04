@@ -192,8 +192,11 @@
 
 #gfsc-filter-toggle,
 #gfsc-chart-type {
+    box-sizing: border-box;
     font-size: 13px;
     height: 30px;
+    min-height: 30px; /* Gravity Forms 3 gives selects a taller minimum */
+    line-height: 28px;
     border: 1px solid #c3c4c7;
     border-radius: 4px;
     padding: 0 8px;
@@ -299,6 +302,15 @@
     gap: 6px;
 }
 
+.gfsc-export .button.button-small {
+    box-sizing: border-box;
+    font-size: 12px;
+    height: 30px;
+    min-height: 30px;
+    line-height: 28px;
+    padding: 0 10px;
+}
+
 /* Filled by JS and shown only when printing. */
 #gfsc-print-head,
 #gfsc-print-totals {
@@ -341,7 +353,9 @@
 }
 
 #gfsc-range-toggles {
+    box-sizing: border-box;
     display: flex;
+    height: 30px;
     gap: 0;
     border: 1px solid #c3c4c7;
     border-radius: 4px;
@@ -357,7 +371,7 @@
     font-size: 12px;
     font-weight: 500;
     line-height: 1;
-    padding: 6px 12px;
+    padding: 0 12px;
     transition: background 0.15s, color 0.15s;
     font-family: inherit;
 }
@@ -404,9 +418,11 @@
     color: #2c3338;
     font-size: 12px;
     font-family: inherit;
-    padding: 4px 8px;
-    height: 28px;
-    line-height: 1;
+    box-sizing: border-box;
+    padding: 0 8px;
+    height: 30px;
+    min-height: 30px;
+    line-height: 28px;
 }
 
 #gfsc-custom-range input[type="date"]:focus {
@@ -415,9 +431,19 @@
     outline: none;
 }
 
+#gfsc-apply-custom.button-small,
+#gfsc-apply-custom.button-small:hover,
+#gfsc-apply-custom.button-small:focus {
+    background: var(--wp-admin-theme-color, #2271b1); /* Gravity Forms 3 turns primary buttons white */
+    border-color: var(--wp-admin-theme-color, #2271b1);
+    color: #fff;
+}
+
 #gfsc-apply-custom.button-small {
-    height: 28px;
-    line-height: 26px;
+    box-sizing: border-box;
+    height: 30px;
+    min-height: 30px;
+    line-height: 28px;
     font-size: 12px;
     padding: 0 10px;
 }

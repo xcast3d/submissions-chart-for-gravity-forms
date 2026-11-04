@@ -22,7 +22,7 @@ Based on what we learned getting Forms Converter Add-on For HTML Page Publisher 
 - [x] WordPress 7.1 with `WP_DEBUG` on: nothing in `debug.log`
 - [ ] Official [Readme Validator](https://wordpress.org/plugins/developers/readme-validator/) clean
 - [ ] Install the exact ZIP through Plugins → Add New → Upload Plugin on a fresh database
-- [ ] Test the oldest supported WordPress (5.8) and Gravity Forms (2.5). So far it's only been tested on WordPress 7.1 with Gravity Forms 2.8.4
+- [ ] Test the oldest supported WordPress (5.8) and Gravity Forms (2.5). So far it's only been tested on WordPress 7.1 with Gravity Forms 2.8.4 and 3.2.1
 - [ ] Test as a non-administrator with limited Gravity Forms permissions in a real browser session
 - [ ] Try the Print / PDF button in Chrome, Safari and Firefox
 

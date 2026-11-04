@@ -15,11 +15,12 @@ if ( ! defined( 'ABSPATH' ) ) {
 $gfsc_forms = GFAPI::get_forms( true, false, 'title', 'ASC' );
 ?>
 <div class="wrap gf_browser_chrome gfsc-page">
-	<header class="gform-settings-header">
-		<div class="gform-settings__wrapper">
-			<img src="<?php echo esc_url( GFCommon::get_base_url() . '/images/logos/gravity-logo-white.svg' ); ?>" alt="Gravity Forms" width="266">
-		</div>
-	</header>
+	<?php
+	// Gravity Forms' own header, so the logo matches each version's header background.
+	if ( is_callable( array( 'GFCommon', 'gf_header' ) ) ) {
+		GFCommon::gf_header();
+	}
+	?>
 
 	<div class="gform-settings__wrapper gform-settings__wrapper--full gfsc-content">
 		<h1 class="gfsc-page-title"><?php esc_html_e( 'Submissions Chart', 'submission-chart-add-on-for-gravity-forms' ); ?></h1>
