@@ -16,7 +16,8 @@
 	let chartDays     = [];
 	let lastData      = null;
 	let currentRange  = '30';
-	let formId        = 0;
+	let selected      = new Set( ( GFSC.forms || [] ).map( ( form ) => form.id ) );
+	let filterTimer   = null;
 	let chartType     = loadChartType();
 	let chartRequest  = 0;
 	let openDate      = null;
@@ -25,43 +26,123 @@
 	const $canvas      = $( '#gfsc-canvas' );
 	const $empty       = $( '#gfsc-empty' );
 	const $customRange = $( '#gfsc-custom-range' );
-	const $select      = $( '#gfsc-form-select' );
+	const $filterPanel = $( '#gfsc-filter-panel' );
+	const $filterAll   = $( '#gfsc-filter-all' );
+	const $csvButton   = $( '#gfsc-download-csv' );
+	const $printButton = $( '#gfsc-print' );
+	const emptyText    = $empty.text();
 	const $typeSelect  = $( '#gfsc-chart-type' );
 
 	// ── Bootstrap ──────────────────────────────────────────────────────────────
 
 	$( function () {
-		// Build options with text nodes so form titles can't inject markup.
-		$select.append( $( '<option>' ).val( 0 ).text( i18n.allForms ) );
+		// Build checkboxes with text nodes so form titles can't inject markup.
 		( GFSC.forms || [] ).forEach( function ( form ) {
-			$select.append( $( '<option>' ).val( form.id ).text( form.title ) );
+			$( '#gfsc-filter-list' ).append(
+				$( '<label>' ).append(
+					$( '<input type="checkbox" class="gfsc-filter-form">' ).val( form.id ),
+					document.createTextNode( ` ${ form.title }` )
+				)
+			);
 		} );
 
 		// Allow deep-linking a form: admin.php?page=gfsc_submissions_chart&form_id=3
 		const requested = parseInt( new URLSearchParams( window.location.search ).get( 'form_id' ), 10 );
-		if ( requested && $select.find( 'option[value="' + requested + '"]' ).length ) {
-			formId = requested;
-			$select.val( formId );
+		if ( requested && selected.has( requested ) ) {
+			selected = new Set( [ requested ] );
 		}
 
+		syncFilterControl();
 		filterRecentCards();
 		syncTypeControl();
 		loadChart();
 	} );
 
-	// ── Form selector ─────────────────────────────────────────────────────────
+	// ── Form filter ────────────────────────────────────────────────────────────
 
-	$select.on( 'change', function () {
-		formId = parseInt( $( this ).val(), 10 ) || 0;
+	function isAllSelected() {
+		return selected.size === ( GFSC.forms || [] ).length;
+	}
+
+	// The form ID when exactly one form is selected, otherwise 0.
+	function singleFormId() {
+		return selected.size === 1 ? Array.from( selected )[ 0 ] : 0;
+	}
+
+	// What the server expects: an empty list means all forms.
+	function requestedFormIds() {
+		return isAllSelected() ? [] : Array.from( selected );
+	}
+
+	function selectionName() {
+		if ( isAllSelected() ) {
+			return i18n.allForms;
+		}
+		const single = ( GFSC.forms || [] ).find( ( form ) => form.id === singleFormId() );
+		if ( single ) {
+			return single.title;
+		}
+		return selected.size ? sprintf( i18n.formsCount, selected.size ) : i18n.noForms;
+	}
+
+	function syncFilterControl() {
+		$( '.gfsc-filter-form' ).each( function () {
+			this.checked = selected.has( parseInt( this.value, 10 ) );
+		} );
+		$filterAll.prop( {
+			checked:       isAllSelected(),
+			indeterminate: selected.size > 0 && ! isAllSelected(),
+		} );
+		$( '#gfsc-filter-label' ).text( selectionName() );
+	}
+
+	function setFilterOpen( open ) {
+		$filterPanel.prop( 'hidden', ! open );
+		$( '#gfsc-filter-toggle' ).attr( 'aria-expanded', String( open ) );
+	}
+
+	$( '#gfsc-filter-toggle' ).on( 'click', function () {
+		setFilterOpen( $filterPanel.prop( 'hidden' ) );
+	} );
+
+	$( document ).on( 'click', function ( event ) {
+		if ( ! $( event.target ).closest( '#gfsc-form-filter' ).length ) {
+			setFilterOpen( false );
+		}
+	} );
+
+	$( '#gfsc-form-filter' ).on( 'keydown', function ( event ) {
+		if ( event.key === 'Escape' && ! $filterPanel.prop( 'hidden' ) ) {
+			setFilterOpen( false );
+			$( '#gfsc-filter-toggle' ).trigger( 'focus' );
+		}
+	} );
+
+	$filterAll.on( 'change', function () {
+		selected = new Set( this.checked ? GFSC.forms.map( ( form ) => form.id ) : [] );
+		selectionChanged();
+	} );
+
+	$( '#gfsc-filter-list' ).on( 'change', '.gfsc-filter-form', function () {
+		const id = parseInt( this.value, 10 );
+		if ( this.checked ) {
+			selected.add( id );
+		} else {
+			selected.delete( id );
+		}
+		selectionChanged();
+	} );
+
+	function selectionChanged() {
+		syncFilterControl();
 		filterRecentCards();
 		syncTypeControl();
 		closeDay();
-		if ( currentRange === 'custom' ) {
-			$( '#gfsc-apply-custom' ).trigger( 'click' );
-		} else {
-			loadChart();
-		}
-	} );
+
+		// Short delay so ticking several forms makes one request, not one each.
+		clearTimeout( filterTimer );
+		filterTimer = setTimeout( reloadChart, 250 );
+	}
 
 	// ── Chart type ─────────────────────────────────────────────────────────────
 
@@ -76,12 +157,12 @@
 	// By-form types need several forms, so with one form selected they fall back
 	// to the matching single-series type. The preference returns with All forms.
 	function effectiveType() {
-		return formId && BY_FORM_TYPES[ chartType ] ? BY_FORM_TYPES[ chartType ] : chartType;
+		return singleFormId() && BY_FORM_TYPES[ chartType ] ? BY_FORM_TYPES[ chartType ] : chartType;
 	}
 
 	function syncTypeControl() {
 		Object.keys( BY_FORM_TYPES ).forEach( function ( type ) {
-			$typeSelect.find( `option[value="${ type }"]` ).prop( 'disabled', !! formId );
+			$typeSelect.find( `option[value="${ type }"]` ).prop( 'disabled', !! singleFormId() );
 		} );
 		$typeSelect.val( effectiveType() );
 	}
@@ -144,13 +225,19 @@
 
 	function loadChart( startDate, endDate ) {
 		const request = ++chartRequest;
+
+		if ( ! selected.size ) {
+			renderNoForms();
+			return;
+		}
+
 		showLoading();
 
 		const payload = {
-			action:  'gfsc_get_data',
-			nonce:   GFSC.nonce,
-			form_id: formId,
-			range:   currentRange,
+			action:   'gfsc_get_data',
+			nonce:    GFSC.nonce,
+			form_ids: requestedFormIds(),
+			range:    currentRange,
 		};
 
 		if ( currentRange === 'custom' ) {
@@ -191,6 +278,8 @@
 		lastData = data;
 		$loading.hide();
 		updateTitle( data.total );
+		updateReport( data );
+		setExportEnabled( data.total > 0 );
 
 		if ( ! data.labels || data.labels.length === 0 || data.total === 0 ) {
 			if ( chartInstance ) {
@@ -198,7 +287,7 @@
 				chartInstance = null;
 			}
 			$canvas.hide();
-			$empty.prop( 'hidden', false );
+			$empty.text( emptyText ).prop( 'hidden', false );
 			return;
 		}
 
@@ -390,9 +479,131 @@
 	}
 
 	function currentSeriesName() {
-		const form = ( GFSC.forms || [] ).find( ( candidate ) => candidate.id === formId );
-		return form ? form.title : i18n.allForms;
+		return selectionName();
 	}
+
+	function renderNoForms() {
+		lastData = null;
+		if ( chartInstance ) {
+			chartInstance.destroy();
+			chartInstance = null;
+		}
+		$loading.hide();
+		$canvas.hide();
+		$empty.text( i18n.pickForm ).prop( 'hidden', false );
+		$( '#gfsc-title' ).text( '' );
+		setExportEnabled( false );
+	}
+
+	// ── Download CSV ───────────────────────────────────────────────────────────
+
+	$csvButton.on( 'click', function () {
+		if ( ! lastData ) {
+			return;
+		}
+
+		const series = lastData.series || [];
+		const header = series.length
+			? [ i18n.date ].concat( series.map( seriesLabel ), i18n.total )
+			: [ i18n.date, selectionName() ];
+
+		const rows = lastData.labels.map( function ( day, i ) {
+			const row = [ day ];
+			series.forEach( ( item ) => row.push( item.counts[ i ] ) );
+			row.push( lastData.counts[ i ] );
+			return row;
+		} );
+
+		const csv = [ header ].concat( rows ).map( ( row ) => row.map( csvCell ).join( ',' ) ).join( '\r\n' );
+
+		// The BOM makes Excel read accented form titles as UTF-8.
+		const url  = URL.createObjectURL( new Blob( [ '\ufeff', csv ], { type: 'text/csv;charset=utf-8' } ) );
+		const link = document.createElement( 'a' );
+		link.href     = url;
+		link.download = `${ reportFileName() }.csv`;
+		document.body.appendChild( link );
+		link.click();
+		link.remove();
+		URL.revokeObjectURL( url );
+	} );
+
+	function csvCell( value ) {
+		let text = String( value );
+		// A form title starting with these would run as a formula in a spreadsheet.
+		if ( typeof value === 'string' && /^[=+\-@\t\r]/.test( text ) ) {
+			text = `'${ text }`;
+		}
+		return /[",\r\n]/.test( text ) ? `"${ text.replace( /"/g, '""' ) }"` : text;
+	}
+
+	function seriesLabel( item ) {
+		return item.slot === null ? i18n.otherForms : item.title;
+	}
+
+	function reportFileName() {
+		const days = lastData.labels;
+		return `${ i18n.filePrefix }-${ days[ 0 ] }-to-${ days[ days.length - 1 ] }`;
+	}
+
+	function setExportEnabled( enabled ) {
+		$csvButton.prop( 'disabled', ! enabled );
+		$printButton.prop( 'disabled', ! enabled );
+	}
+
+	// ── Print / PDF ────────────────────────────────────────────────────────────
+
+	const PRINT_WIDTH  = 700;
+	const PRINT_HEIGHT = 320;
+	let screenTitle    = '';
+
+	$printButton.on( 'click', () => window.print() );
+
+	// Fills the print-only heading and totals table, which CSS shows on paper.
+	function updateReport( data ) {
+		const days = data.labels || [];
+		$( '#gfsc-print-range' ).text( days.length ? `${ formatLongDate( days[ 0 ] ) } – ${ formatLongDate( days[ days.length - 1 ] ) }` : '' );
+		$( '#gfsc-print-forms' ).text(
+			isAllSelected() ? i18n.allForms : GFSC.forms.filter( ( form ) => selected.has( form.id ) ).map( ( form ) => form.title ).join( ', ' )
+		);
+		$( '#gfsc-print-total' ).text( `${ data.total.toLocaleString() } ${ data.total === 1 ? i18n.submission : i18n.submissions }` );
+
+		const $rows   = $( '#gfsc-print-totals tbody' ).empty();
+		const series  = data.series || [];
+		const addRow  = ( name, value ) => $rows.append(
+			$( '<tr>' ).append( $( '<td>' ).text( name ), $( '<td class="gfsc-print-num">' ).text( value.toLocaleString() ) )
+		);
+		series
+			.map( ( item ) => ( { name: seriesLabel( item ), total: item.counts.reduce( ( sum, value ) => sum + value, 0 ) } ) )
+			.sort( ( a, b ) => b.total - a.total )
+			.forEach( ( item ) => addRow( item.name, item.total ) );
+		if ( series.length ) {
+			addRow( i18n.total, data.total );
+		}
+		$( '#gfsc-print-totals' ).prop( 'hidden', ! series.length );
+	}
+
+	// Redraws at paper size and a higher resolution so the chart stays sharp. Also covers Ctrl/Cmd+P.
+	window.addEventListener( 'beforeprint', function () {
+		if ( lastData && lastData.total > 0 ) {
+			screenTitle    = document.title;
+			document.title = reportFileName();
+		}
+		if ( chartInstance ) {
+			chartInstance.options.devicePixelRatio = 2;
+			chartInstance.resize( PRINT_WIDTH, PRINT_HEIGHT );
+		}
+	} );
+
+	window.addEventListener( 'afterprint', function () {
+		if ( screenTitle ) {
+			document.title = screenTitle;
+			screenTitle    = '';
+		}
+		if ( chartInstance ) {
+			delete chartInstance.options.devicePixelRatio;
+			chartInstance.resize();
+		}
+	} );
 
 	// ── Day drill-down ─────────────────────────────────────────────────────────
 
@@ -405,8 +616,8 @@
 	function openDay( date ) {
 		openDate = date;
 
-		if ( formId ) {
-			window.location.href = entriesUrl( formId, date );
+		if ( singleFormId() ) {
+			window.location.href = entriesUrl( singleFormId(), date );
 			return;
 		}
 
@@ -416,10 +627,10 @@
 		$day.prop( 'hidden', false );
 
 		$.post( GFSC.ajaxUrl, {
-			action:  'gfsc_get_day',
-			nonce:   GFSC.nonce,
-			form_id: formId,
-			date:    date,
+			action:   'gfsc_get_day',
+			nonce:    GFSC.nonce,
+			form_ids: requestedFormIds(),
+			date:     date,
 		} )
 			.done( function ( response ) {
 				if ( response.success ) {
@@ -481,7 +692,7 @@
 
 	function filterRecentCards() {
 		$( '.gfsc-recent-card' ).each( function () {
-			$( this ).prop( 'hidden', formId !== 0 && parseInt( $( this ).data( 'form-id' ), 10 ) !== formId );
+			$( this ).prop( 'hidden', ! selected.has( parseInt( $( this ).data( 'form-id' ), 10 ) ) );
 		} );
 	}
 
@@ -560,6 +771,7 @@
 		$loading.hide();
 		$canvas.hide();
 		$empty.text( msg ).prop( 'hidden', false );
+		setExportEnabled( false );
 	}
 
 	function updateTitle( total ) {
@@ -573,6 +785,11 @@
 	function sprintf( format, ...args ) {
 		let i = 0;
 		return format.replace( /%(?:(\d+)\$)?[sd]/g, ( match, pos ) => String( args[ pos ? pos - 1 : i++ ] ) );
+	}
+
+	function formatLongDate( dateStr ) {
+		const [ y, m, d ] = dateStr.split( '-' );
+		return new Date( +y, +m - 1, +d ).toLocaleDateString( undefined, { month: 'long', day: 'numeric', year: 'numeric' } );
 	}
 
 	function formatLabel( dateStr ) {

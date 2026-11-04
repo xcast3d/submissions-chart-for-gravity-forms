@@ -190,7 +190,7 @@
     margin-bottom: 4px;
 }
 
-#gfsc-form-select,
+#gfsc-filter-toggle,
 #gfsc-chart-type {
     font-size: 13px;
     height: 30px;
@@ -206,7 +206,106 @@
     min-width: 170px;
 }
 
-#gfsc-form-select:focus,
+/* ── Form filter ────────────────────────────────────────────── */
+
+#gfsc-chart-card {
+    overflow: visible; /* lets the filter panel extend past the card */
+}
+
+#gfsc-form-filter {
+    position: relative;
+}
+
+#gfsc-filter-toggle {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    max-width: 280px;
+    background: #fff;
+    cursor: pointer;
+    line-height: 1;
+}
+
+#gfsc-filter-label {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+#gfsc-filter-toggle .dashicons {
+    flex-shrink: 0;
+    width: 14px;
+    height: 14px;
+    font-size: 14px;
+}
+
+#gfsc-filter-panel {
+    position: absolute;
+    top: calc(100% + 4px);
+    left: 0;
+    z-index: 10;
+    box-sizing: border-box;
+    min-width: 100%;
+    width: max-content;
+    max-width: 340px;
+    max-height: 320px;
+    overflow-y: auto;
+    padding: 8px 0;
+    background: #fff;
+    border: 1px solid #c3c4c7;
+    border-radius: 4px;
+    box-shadow: 0 3px 8px rgba(0,0,0,.15);
+}
+
+#gfsc-filter-panel[hidden] {
+    display: none;
+}
+
+#gfsc-filter-panel label {
+    display: block;
+    padding: 5px 12px;
+    font-size: 13px;
+    cursor: pointer;
+}
+
+#gfsc-filter-panel label:hover {
+    background: #f6f7f7;
+}
+
+.gfsc-filter-all {
+    margin-bottom: 4px;
+    border-bottom: 1px solid #f0f0f1;
+    font-weight: 600;
+}
+
+/* ── Export row ─────────────────────────────────────────────── */
+
+.gfsc-card-foot {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-top: 8px;
+}
+
+.gfsc-card-foot .gfsc-hint {
+    margin: 0;
+}
+
+.gfsc-export {
+    display: flex;
+    gap: 6px;
+}
+
+/* Filled by JS and shown only when printing. */
+#gfsc-print-head,
+#gfsc-print-totals {
+    display: none;
+}
+
+#gfsc-filter-toggle:focus,
 #gfsc-chart-type:focus {
     border-color: var(--wp-admin-theme-color, #2271b1);
     box-shadow: 0 0 0 1px var(--wp-admin-theme-color, #2271b1);
@@ -403,7 +502,8 @@
         width: 100%;
     }
 
-    #gfsc-form-select,
+    #gfsc-form-filter,
+    #gfsc-filter-toggle,
     #gfsc-chart-type {
         width: 100%;
         min-width: 0;
@@ -441,4 +541,132 @@
 #gfsc-empty[hidden],
 #gfsc-custom-range[hidden] {
     display: none;
+}
+
+/* ── Print / PDF report ──────────────────────────────────────── */
+
+@media print {
+    @page {
+        margin: 15mm;
+    }
+
+    html.wp-toolbar {
+        padding-top: 0;
+    }
+
+    #wpadminbar,
+    #adminmenumain,
+    #adminmenuback,
+    #adminmenuwrap,
+    #wpfooter,
+    #screen-meta,
+    #screen-meta-links,
+    #gf-admin-notices-wrapper,
+    .notice,
+    .update-nag,
+    .gform-settings-header,
+    .gfsc-page-title,
+    #gfsc-header,
+    .gfsc-card-foot,
+    #gfsc-day,
+    .gfsc-section-title,
+    #gfsc-recent {
+        display: none !important;
+    }
+
+    html,
+    body,
+    #wpwrap,
+    #wpcontent,
+    #wpbody,
+    #wpbody-content {
+        height: auto !important;
+        min-height: 0 !important;
+        margin: 0 !important;
+        padding: 0 !important;
+        float: none !important;
+        background: #fff !important;
+    }
+
+    .gfsc-page {
+        margin: 0 !important;
+    }
+
+    .gfsc-content {
+        display: block;
+        max-width: none;
+        padding: 0;
+    }
+
+    #gfsc-chart-card {
+        padding: 0;
+        border: 0;
+        box-shadow: none;
+    }
+
+    #gfsc-chart-area {
+        height: 320px;
+        break-inside: avoid;
+    }
+
+    #gfsc-canvas {
+        print-color-adjust: exact;
+        -webkit-print-color-adjust: exact;
+    }
+
+    #gfsc-print-head {
+        display: block;
+        margin-bottom: 20px;
+        color: #1d2327;
+    }
+
+    #gfsc-print-head h1 {
+        margin: 0 0 6px;
+        padding: 0;
+        font-size: 22px;
+        font-weight: 600;
+    }
+
+    #gfsc-print-head p {
+        margin: 0 0 2px;
+        font-size: 13px;
+    }
+
+    #gfsc-print-head .gfsc-print-site,
+    #gfsc-print-head .gfsc-print-generated {
+        color: #50575e;
+        font-size: 12px;
+    }
+
+    #gfsc-print-head #gfsc-print-total {
+        margin-top: 6px;
+        font-size: 16px;
+        font-weight: 600;
+    }
+
+    #gfsc-print-totals:not([hidden]) {
+        display: table;
+        width: 100%;
+        margin-top: 24px;
+        border-collapse: collapse;
+        break-inside: avoid;
+    }
+
+    #gfsc-print-totals th,
+    #gfsc-print-totals td {
+        padding: 6px 8px;
+        border-bottom: 1px solid #dcdcde;
+        color: #1d2327;
+        font-size: 13px;
+        text-align: left;
+    }
+
+    #gfsc-print-totals tr:last-child td {
+        border-bottom: 0;
+        font-weight: 600;
+    }
+
+    #gfsc-print-totals .gfsc-print-num {
+        text-align: right;
+    }
 }

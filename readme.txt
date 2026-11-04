@@ -29,6 +29,7 @@ Requires Gravity Forms.
 * Added "All forms" and Last 90 Days options.
 * Click a day in the chart to see that day's entries.
 * Recent Submissions cards: the last 5 entries for each form, with Spam and Trash links.
+* Filter the chart to specific forms, download the current view as CSV, or print it as a report.
 * Chart types: bars, line, lines by form with a total line, and stacked bars by form.
 * Page layout matches Gravity Forms' own admin screens.
 * Chart.js bundled locally instead of loaded from a CDN.

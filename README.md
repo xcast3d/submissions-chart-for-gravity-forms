@@ -2,13 +2,14 @@
 
 Adds a **Forms → Submissions Chart** page to the Gravity Forms admin menu with a bar chart of entries per day.
 
-- Form picker (including **All forms**), deep-linkable via `admin.php?page=gfsc_submissions_chart&form_id=3`
+- Form filter with a checkbox per form (**All forms** by default), preselect one form via `admin.php?page=gfsc_submissions_chart&form_id=3`
 - Ranges: Last 7 / 30 / 90 days, All Time, Custom
 - Timezone-aware (buckets by the site timezone; GF stores entries in UTC)
 - Zero-filled days so the x-axis stays continuous
 - Bar colour follows the WP admin colour scheme
+- **Download CSV** of the current view, with a column per form plus a total, and **Print / PDF** for a one-page report with the date range, chart and per-form totals
 - Chart types: Bars, Line, Lines by form (one line per form plus a Total line) and Stacked bars by form. Line and by-form charts have a legend with each series' total for the range. The choice is remembered per browser. Up to 8 forms get their own color; any others fold into "Other forms"
-- Click a day: with one form selected it opens GF's Entries list filtered to that date; with **All forms** it opens a panel listing that day's entries across forms, with per-form "Open in Entries" links
+- Click a day: with one form selected it opens GF's Entries list filtered to that date; with several it opens a panel listing that day's entries across those forms, with per-form "Open in Entries" links
 - **Recent Submissions**: a 2-column grid with one card per form showing its last 5 entries. Each entry is labelled by the form's first Name field, else the first field labelled "name", else the first field that stores a value. Hovering an entry shows Spam and Trash links with an Undo, following the same visibility rules as GF's Entries list
 - Laid out like Gravity Forms' own admin pages (logo header, centered content)
 - Chart.js 4.4.3 bundled locally (no CDN)

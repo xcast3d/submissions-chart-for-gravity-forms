@@ -103,6 +103,12 @@ class GFSC_Admin {
 					'movedTrash'  => __( 'Entry moved to the trash.', 'submissions-chart-for-gf' ),
 					'undo'        => __( 'Undo', 'submissions-chart-for-gf' ),
 					'updateError' => __( 'Could not update the entry.', 'submissions-chart-for-gf' ),
+					/* translators: %d: number of selected forms. */
+					'formsCount'  => __( '%d forms', 'submissions-chart-for-gf' ),
+					'noForms'     => __( 'No forms', 'submissions-chart-for-gf' ),
+					'pickForm'    => __( 'Select at least one form.', 'submissions-chart-for-gf' ),
+					'date'        => __( 'Date', 'submissions-chart-for-gf' ),
+					'filePrefix'  => __( 'submissions', 'submissions-chart-for-gf' ),
 				),
 			)
 		);
@@ -123,7 +129,7 @@ class GFSC_Admin {
 		}
 
 		// phpcs:disable WordPress.Security.NonceVerification.Missing -- verified above.
-		$form_id = isset( $_POST['form_id'] ) ? absint( $_POST['form_id'] ) : 0;
+		$form_ids = self::posted_form_ids();
 		$range   = isset( $_POST['range'] ) ? sanitize_key( wp_unslash( $_POST['range'] ) ) : 'all';
 		$start   = null;
 		$end     = null;
@@ -141,7 +147,7 @@ class GFSC_Admin {
 		}
 		// phpcs:enable
 
-		wp_send_json_success( GFSC_Data::submissions_by_day( $form_id, $start, $end ) );
+		wp_send_json_success( GFSC_Data::submissions_by_day( $form_ids, $start, $end ) );
 	}
 
 	/**
@@ -155,7 +161,7 @@ class GFSC_Admin {
 		}
 
 		// phpcs:disable WordPress.Security.NonceVerification.Missing -- verified above.
-		$form_id = isset( $_POST['form_id'] ) ? absint( $_POST['form_id'] ) : 0;
+		$form_ids = self::posted_form_ids();
 		$date    = isset( $_POST['date'] ) ? self::sanitize_date( wp_unslash( $_POST['date'] ) ) : null;
 		// phpcs:enable
 
@@ -163,7 +169,7 @@ class GFSC_Admin {
 			wp_send_json_error( __( 'Invalid date.', 'submissions-chart-for-gf' ) );
 		}
 
-		wp_send_json_success( GFSC_Data::entries_for_day( $form_id, $date ) );
+		wp_send_json_success( GFSC_Data::entries_for_day( $form_ids, $date ) );
 	}
 
 	/**
@@ -204,6 +210,17 @@ class GFSC_Admin {
 		include GFSC_PLUGIN_DIR . 'includes/views/recent-card.php';
 
 		wp_send_json_success( array( 'card' => ob_get_clean() ) );
+	}
+
+	/**
+	 * The form_ids[] request value as integers. Empty means all forms. Callers verify the nonce.
+	 *
+	 * @return int[]
+	 */
+	private static function posted_form_ids() {
+		// phpcs:ignore WordPress.Security.NonceVerification.Missing, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- sanitized by absint below.
+		$ids = isset( $_POST['form_ids'] ) ? (array) wp_unslash( $_POST['form_ids'] ) : array();
+		return array_values( array_filter( array_map( 'absint', $ids ) ) );
 	}
 
 	/**

@@ -25,11 +25,34 @@ $gfsc_forms = GFAPI::get_forms( true, false, 'title', 'ASC' );
 		<h1 class="gfsc-page-title"><?php esc_html_e( 'Submissions Chart', 'submissions-chart-for-gf' ); ?></h1>
 		<hr class="wp-header-end">
 
+		<div id="gfsc-print-head">
+			<p class="gfsc-print-site"><?php echo esc_html( get_bloginfo( 'name' ) ); ?></p>
+			<h1><?php esc_html_e( 'Submissions Report', 'submissions-chart-for-gf' ); ?></h1>
+			<p id="gfsc-print-range"></p>
+			<p id="gfsc-print-forms"></p>
+			<p id="gfsc-print-total"></p>
+			<p class="gfsc-print-generated">
+				<?php
+				/* translators: %s: date the report was generated. */
+				echo esc_html( sprintf( __( 'Generated %s', 'submissions-chart-for-gf' ), wp_date( get_option( 'date_format' ) ) ) );
+				?>
+			</p>
+		</div>
+
 		<div id="gfsc-chart-card" class="gfsc-card">
 			<div id="gfsc-header">
 				<div id="gfsc-title-row">
-					<label for="gfsc-form-select" class="screen-reader-text"><?php esc_html_e( 'Form', 'submissions-chart-for-gf' ); ?></label>
-					<select id="gfsc-form-select"></select>
+					<div id="gfsc-form-filter">
+						<button type="button" id="gfsc-filter-toggle" aria-expanded="false" aria-controls="gfsc-filter-panel">
+							<span class="screen-reader-text"><?php esc_html_e( 'Forms:', 'submissions-chart-for-gf' ); ?></span>
+							<span id="gfsc-filter-label"></span>
+							<span class="dashicons dashicons-arrow-down-alt2" aria-hidden="true"></span>
+						</button>
+						<div id="gfsc-filter-panel" role="group" aria-label="<?php esc_attr_e( 'Forms shown in the chart', 'submissions-chart-for-gf' ); ?>" hidden>
+							<label class="gfsc-filter-all"><input type="checkbox" id="gfsc-filter-all" /> <?php esc_html_e( 'All forms', 'submissions-chart-for-gf' ); ?></label>
+							<div id="gfsc-filter-list"></div>
+						</div>
+					</div>
 					<label for="gfsc-chart-type" class="screen-reader-text"><?php esc_html_e( 'Chart type', 'submissions-chart-for-gf' ); ?></label>
 					<select id="gfsc-chart-type">
 						<option value="bar"><?php esc_html_e( 'Bars', 'submissions-chart-for-gf' ); ?></option>
@@ -64,7 +87,22 @@ $gfsc_forms = GFAPI::get_forms( true, false, 'title', 'ASC' );
 				<canvas id="gfsc-canvas" aria-label="<?php esc_attr_e( 'Submissions chart', 'submissions-chart-for-gf' ); ?>" role="img"></canvas>
 				<div id="gfsc-empty" hidden><?php esc_html_e( 'No submissions found for this period.', 'submissions-chart-for-gf' ); ?></div>
 			</div>
-			<p class="gfsc-hint"><?php esc_html_e( 'Click a day in the chart to see its entries.', 'submissions-chart-for-gf' ); ?></p>
+			<div class="gfsc-card-foot">
+				<p class="gfsc-hint"><?php esc_html_e( 'Click a day in the chart to see its entries.', 'submissions-chart-for-gf' ); ?></p>
+				<div class="gfsc-export">
+					<button type="button" id="gfsc-download-csv" class="button button-small" disabled><?php esc_html_e( 'Download CSV', 'submissions-chart-for-gf' ); ?></button>
+					<button type="button" id="gfsc-print" class="button button-small" disabled><?php esc_html_e( 'Print / PDF', 'submissions-chart-for-gf' ); ?></button>
+				</div>
+			</div>
+			<table id="gfsc-print-totals" class="gfsc-table" hidden>
+				<thead>
+					<tr>
+						<th scope="col"><?php esc_html_e( 'Form', 'submissions-chart-for-gf' ); ?></th>
+						<th scope="col" class="gfsc-print-num"><?php esc_html_e( 'Submissions', 'submissions-chart-for-gf' ); ?></th>
+					</tr>
+				</thead>
+				<tbody></tbody>
+			</table>
 		</div>
 
 		<div id="gfsc-day" class="gfsc-card" hidden>

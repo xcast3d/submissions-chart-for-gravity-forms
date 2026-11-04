@@ -22,15 +22,15 @@ class GFSC_Data {
 	 * before bucketing. Only the date_created column is read, so this stays cheap
 	 * even for large forms.
 	 *
-	 * @param int         $form_id Form ID, or 0 for all forms.
+	 * @param int[]       $form_ids Form IDs to include, or empty for all forms.
 	 * @param string|null $start   Local start date (Y-m-d), inclusive.
 	 * @param string|null $end     Local end date (Y-m-d), inclusive.
-	 * When $form_id is 0 the result also has per-form `series`, covering only forms
-	 * with entries in the range.
+	 * When more than one form is included the result also has per-form `series`,
+	 * covering only forms with entries in the range.
 	 *
 	 * @return array{labels: string[], counts: int[], total: int, series: array[]}
 	 */
-	public static function submissions_by_day( $form_id, $start = null, $end = null ) {
+	public static function submissions_by_day( $form_ids = array(), $start = null, $end = null ) {
 		global $wpdb;
 
 		$site_tz = wp_timezone();
@@ -39,13 +39,10 @@ class GFSC_Data {
 		$where   = array( "status = 'active'" );
 		$args    = array();
 
-		if ( $form_id ) {
-			$where[] = 'form_id = %d';
-			$args[]  = $form_id;
-		} else {
-			// Ignore entries belonging to trashed forms.
-			$where[] = 'form_id IN (' . implode( ',', array_map( 'absint', self::active_form_ids() ) ?: array( 0 ) ) . ')';
-		}
+		// Limit to active forms, which also ignores entries belonging to trashed forms.
+		$active  = self::active_form_ids();
+		$ids     = $form_ids ? array_intersect( $form_ids, $active ) : $active;
+		$where[] = 'form_id IN (' . implode( ',', array_map( 'absint', $ids ) ?: array( 0 ) ) . ')';
 
 		if ( $start ) {
 			$where[] = 'date_created >= %s';
@@ -99,7 +96,7 @@ class GFSC_Data {
 			'labels' => $labels,
 			'counts' => $counts,
 			'total'  => array_sum( $counts ),
-			'series' => $form_id ? array() : self::build_series( $form_map, $labels ),
+			'series' => count( $ids ) > 1 ? self::build_series( $form_map, $labels ) : array(),
 		);
 	}
 
@@ -209,16 +206,16 @@ class GFSC_Data {
 	/**
 	 * Active entries created on one local calendar day, newest first.
 	 *
-	 * @param int    $form_id Form ID, or 0 for all forms.
+	 * @param int[]  $form_ids Form IDs to include, or empty for all forms.
 	 * @param string $date    Local date (Y-m-d).
 	 * @param int    $limit   Maximum entries returned.
 	 */
-	public static function entries_for_day( $form_id, $date, $limit = 100 ) {
+	public static function entries_for_day( $form_ids, $date, $limit = 100 ) {
 		$site_tz = wp_timezone();
 		$forms   = array();
 
 		foreach ( GFAPI::get_forms( true, false ) as $form ) {
-			if ( ! $form_id || (int) $form['id'] === $form_id ) {
+			if ( ! $form_ids || in_array( (int) $form['id'], $form_ids, true ) ) {
 				$forms[ (int) $form['id'] ] = $form;
 			}
 		}
