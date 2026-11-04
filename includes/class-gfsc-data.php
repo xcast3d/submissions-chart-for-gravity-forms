@@ -2,7 +2,7 @@
 /**
  * Entry aggregation.
  *
- * @package SubmissionsChartForGF
+ * @package SubmissionChartAddOnForGravityForms
  */
 
 if ( ! defined( 'ABSPATH' ) ) {
@@ -54,7 +54,8 @@ class GFSC_Data {
 		}
 
 		$sql = "SELECT form_id, date_created FROM {$table} WHERE " . implode( ' AND ', $where );
-		// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared, WordPress.DB.DirectDatabaseQuery
+		// The table name comes from Gravity Forms, IDs are cast with absint(), and values are prepared. %i isn't available before WordPress 6.2.
+		// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared, WordPress.DB.DirectDatabaseQuery, PluginCheck.Security.DirectDB.UnescapedDBParameter
 		$rows = $wpdb->get_results( $args ? $wpdb->prepare( $sql, $args ) : $sql );
 
 		$map      = array();
@@ -162,7 +163,8 @@ class GFSC_Data {
 		$table = GFFormsModel::get_entry_table_name();
 		$ids   = implode( ',', array_map( 'absint', self::active_form_ids() ) ?: array( 0 ) );
 
-		// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.DirectDatabaseQuery
+		// The table name comes from Gravity Forms, IDs are cast with absint(), and values are prepared. %i isn't available before WordPress 6.2.
+		// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.DirectDatabaseQuery, PluginCheck.Security.DirectDB.UnescapedDBParameter
 		$busiest = array_map( 'intval', $wpdb->get_col( $wpdb->prepare( "SELECT form_id FROM {$table} WHERE status = 'active' AND form_id IN ({$ids}) GROUP BY form_id ORDER BY COUNT(*) DESC, form_id ASC LIMIT %d", self::MAX_COLOR_SERIES ) ) );
 		sort( $busiest );
 
@@ -192,7 +194,7 @@ class GFSC_Data {
 		);
 
 		return array(
-			'field_label' => $field ? GFCommon::get_label( $field ) : __( 'Entry', 'submissions-chart-for-gf' ),
+			'field_label' => $field ? GFCommon::get_label( $field ) : __( 'Entry', 'submission-chart-add-on-for-gravity-forms' ),
 			'total'       => (int) $total,
 			'entries'     => is_wp_error( $entries ) ? array() : array_map(
 				function ( $entry ) use ( $form, $field ) {
@@ -382,7 +384,8 @@ class GFSC_Data {
 		$table   = GFFormsModel::get_entry_table_name();
 		$ids     = implode( ',', array_map( 'absint', $form_ids ) );
 
-		// phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.DirectDatabaseQuery
+		// The table name comes from Gravity Forms, IDs are cast with absint(), and values are prepared. %i isn't available before WordPress 6.2.
+		// phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.DirectDatabaseQuery, PluginCheck.Security.DirectDB.UnescapedDBParameter
 		$rows = $wpdb->get_results(
 			$wpdb->prepare(
 				"SELECT form_id, COUNT(*) AS c FROM {$table}

@@ -1,5 +1,7 @@
 # Licensed third-party plugins for the Docker site (see bin/setup.sh)
 /.docker/
 /dist/
+# WordPress.org SVN checkout (bin/release-wp.sh)
+/*-svn/
 .DS_Store
 .env

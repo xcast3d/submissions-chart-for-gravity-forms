@@ -5,7 +5,7 @@
  * Also rendered by the entry status AJAX handler, so a card can be swapped in
  * place after an entry is moved to spam or trash.
  *
- * @package SubmissionsChartForGF
+ * @package SubmissionChartAddOnForGravityForms
  */
 
 if ( ! defined( 'ABSPATH' ) ) {
@@ -24,7 +24,7 @@ $gfsc_can_trash = GFCommon::current_user_can_any( 'gravityforms_delete_entries' 
 		<a href="<?php echo esc_url( GFSC_Data::entries_url( $gfsc_form['id'] ) ); ?>">
 			<?php
 			/* translators: %s: total entry count. */
-			echo esc_html( sprintf( _n( 'View %s entry', 'View all %s entries', $gfsc_recent['total'], 'submissions-chart-for-gf' ), number_format_i18n( $gfsc_recent['total'] ) ) );
+			echo esc_html( sprintf( _n( 'View %s entry', 'View all %s entries', $gfsc_recent['total'], 'submission-chart-add-on-for-gravity-forms' ), number_format_i18n( $gfsc_recent['total'] ) ) );
 			?>
 		</a>
 	</div>
@@ -33,7 +33,7 @@ $gfsc_can_trash = GFCommon::current_user_can_any( 'gravityforms_delete_entries' 
 			<thead>
 				<tr>
 					<th scope="col"><?php echo esc_html( $gfsc_recent['field_label'] ); ?></th>
-					<th scope="col" class="gfsc-col-date"><?php esc_html_e( 'Submitted', 'submissions-chart-for-gf' ); ?></th>
+					<th scope="col" class="gfsc-col-date"><?php esc_html_e( 'Submitted', 'submission-chart-add-on-for-gravity-forms' ); ?></th>
 				</tr>
 			</thead>
 			<tbody>
@@ -46,13 +46,13 @@ $gfsc_can_trash = GFCommon::current_user_can_any( 'gravityforms_delete_entries' 
 							<?php if ( $gfsc_can_spam || $gfsc_can_trash ) : ?>
 								<div class="row-actions">
 									<?php if ( $gfsc_can_spam ) : ?>
-										<span class="spam"><a href="#" role="button" class="gfsc-entry-action" data-entry-id="<?php echo absint( $gfsc_entry['id'] ); ?>" data-status="spam" aria-label="<?php esc_attr_e( 'Mark this entry as spam', 'submissions-chart-for-gf' ); ?>"><?php esc_html_e( 'Spam', 'submissions-chart-for-gf' ); ?></a></span>
+										<span class="spam"><a href="#" role="button" class="gfsc-entry-action" data-entry-id="<?php echo absint( $gfsc_entry['id'] ); ?>" data-status="spam" aria-label="<?php esc_attr_e( 'Mark this entry as spam', 'submission-chart-add-on-for-gravity-forms' ); ?>"><?php esc_html_e( 'Spam', 'submission-chart-add-on-for-gravity-forms' ); ?></a></span>
 									<?php endif; ?>
 									<?php if ( $gfsc_can_spam && $gfsc_can_trash ) : ?>
 										|
 									<?php endif; ?>
 									<?php if ( $gfsc_can_trash ) : ?>
-										<span class="trash"><a href="#" role="button" class="gfsc-entry-action" data-entry-id="<?php echo absint( $gfsc_entry['id'] ); ?>" data-status="trash" aria-label="<?php esc_attr_e( 'Move this entry to the trash', 'submissions-chart-for-gf' ); ?>"><?php esc_html_e( 'Trash', 'submissions-chart-for-gf' ); ?></a></span>
+										<span class="trash"><a href="#" role="button" class="gfsc-entry-action" data-entry-id="<?php echo absint( $gfsc_entry['id'] ); ?>" data-status="trash" aria-label="<?php esc_attr_e( 'Move this entry to the trash', 'submission-chart-add-on-for-gravity-forms' ); ?>"><?php esc_html_e( 'Trash', 'submission-chart-add-on-for-gravity-forms' ); ?></a></span>
 									<?php endif; ?>
 								</div>
 							<?php endif; ?>
@@ -63,6 +63,6 @@ $gfsc_can_trash = GFCommon::current_user_can_any( 'gravityforms_delete_entries' 
 			</tbody>
 		</table>
 	<?php else : ?>
-		<p class="gfsc-card-empty"><?php esc_html_e( 'No submissions yet.', 'submissions-chart-for-gf' ); ?></p>
+		<p class="gfsc-card-empty"><?php esc_html_e( 'No submissions yet.', 'submission-chart-add-on-for-gravity-forms' ); ?></p>
 	<?php endif; ?>
 </section>

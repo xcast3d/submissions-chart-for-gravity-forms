@@ -1,0 +1,16 @@
+# Files kept out of the release ZIP and WordPress.org SVN (bin/build-zip.sh).
+# A leading / means only at the plugin root.
+/.git
+/.github
+/.wordpress-org
+/.docker
+/bin
+/dist
+/docs
+/docker-compose.yml
+/README.md
+/CLAUDE.md
+/*-svn
+.gitignore
+.distignore
+.DS_Store

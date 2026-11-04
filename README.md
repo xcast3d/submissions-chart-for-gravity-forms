@@ -18,7 +18,7 @@ Assets load only on the plugin's own page, so the Forms list and form editor are
 
 ## Requirements
 
-WordPress 5.8+, PHP 7.4+, Gravity Forms 2.5+.
+WordPress 5.8+, PHP 7.4+, Gravity Forms 2.5+. The plugin is an independent add-on, not affiliated with Rocketgenius.
 
 ## Local development
 
@@ -36,7 +36,7 @@ This extracts Gravity Forms into the git-ignored `.docker/plugins/`, starts Word
 | Chart page | http://localhost:8090/wp-admin/admin.php?page=gfsc_submissions_chart |
 | Login | `admin` / `admin` (override with `WP_ADMIN_USER` / `WP_ADMIN_PASS`) |
 
-The repo is bind-mounted as `wp-content/plugins/submissions-chart-for-gf`, so edits are live.
+The repo is bind-mounted as `wp-content/plugins/submission-chart-add-on-for-gravity-forms`, so edits are live.
 
 ```bash
 ./bin/wp.sh plugin list                     # any WP-CLI command
@@ -46,7 +46,7 @@ docker compose down                         # stop (keeps data)
 docker compose down -v                      # wipe the site and database
 ```
 
-Re-seed more entries: `./bin/wp.sh eval-file wp-content/plugins/submissions-chart-for-gf/bin/seed.php 365`
+Re-seed more entries: `./bin/wp.sh eval-file wp-content/plugins/submission-chart-add-on-for-gravity-forms/bin/seed.php 365`
 
 ## Release zip
 
@@ -54,12 +54,14 @@ Re-seed more entries: `./bin/wp.sh eval-file wp-content/plugins/submissions-char
 ./bin/build-zip.sh
 ```
 
-Builds `dist/submissions-chart-for-gf-<version>.zip` from committed `HEAD`, excluding dev files (see `.gitattributes`).
+Builds `dist/submission-chart-add-on-for-gravity-forms-<version>.zip` from the working tree, excluding the dev files listed in `.distignore`.
+
+See [docs/wordpress-org-submission.md](docs/wordpress-org-submission.md) for the WordPress.org checklist and `bin/release-wp.sh` for deploying to SVN after approval.
 
 ## Structure
 
 ```
-submissions-chart-for-gf.php      Plugin header + bootstrap (on gform_loaded)
+submission-chart-add-on-for-gravity-forms.php      Plugin header + bootstrap (on gform_loaded)
 includes/class-gfsc-admin.php     Menu (gform_addon_navigation), assets, AJAX
 includes/class-gfsc-data.php      Entry aggregation by local day
 includes/views/page.php           Page markup

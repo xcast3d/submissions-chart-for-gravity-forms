@@ -41,13 +41,13 @@ if ! wp core is-installed >/dev/null 2>&1; then
 		--admin_email="$ADMIN_EMAIL" --skip-email
 fi
 
-wp plugin activate gravityforms submissions-chart-for-gf
+wp plugin activate gravityforms submission-chart-add-on-for-gravity-forms
 wp option update gform_pending_installation 0 >/dev/null
 wp option update timezone_string "America/New_York" >/dev/null
 
 if [ "$(wp eval 'echo count( GFAPI::get_forms() );')" = "0" ]; then
 	echo "→ Seeding sample forms and entries"
-	wp eval-file wp-content/plugins/submissions-chart-for-gf/bin/seed.php
+	wp eval-file wp-content/plugins/submission-chart-add-on-for-gravity-forms/bin/seed.php
 fi
 
 echo

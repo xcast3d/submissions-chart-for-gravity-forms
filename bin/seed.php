@@ -2,9 +2,9 @@
 /**
  * Seeds sample forms and back-dated entries for local testing.
  *
- * Usage: ./bin/wp.sh eval-file wp-content/plugins/submissions-chart-for-gf/bin/seed.php [days=120]
+ * Usage: ./bin/wp.sh eval-file wp-content/plugins/submission-chart-add-on-for-gravity-forms/bin/seed.php [days=120]
  *
- * @package SubmissionsChartForGF
+ * @package SubmissionChartAddOnForGravityForms
  */
 
 if ( ! defined( 'ABSPATH' ) || ! class_exists( 'GFAPI' ) ) {
