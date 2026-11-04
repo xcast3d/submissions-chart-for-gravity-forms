@@ -30,6 +30,13 @@ $gfsc_forms = GFAPI::get_forms( true, false, 'title', 'ASC' );
 				<div id="gfsc-title-row">
 					<label for="gfsc-form-select" class="screen-reader-text"><?php esc_html_e( 'Form', 'submissions-chart-for-gf' ); ?></label>
 					<select id="gfsc-form-select"></select>
+					<label for="gfsc-chart-type" class="screen-reader-text"><?php esc_html_e( 'Chart type', 'submissions-chart-for-gf' ); ?></label>
+					<select id="gfsc-chart-type">
+						<option value="bar"><?php esc_html_e( 'Bars', 'submissions-chart-for-gf' ); ?></option>
+						<option value="line"><?php esc_html_e( 'Line', 'submissions-chart-for-gf' ); ?></option>
+						<option value="lines-by-form"><?php esc_html_e( 'Lines by form', 'submissions-chart-for-gf' ); ?></option>
+						<option value="stacked-by-form"><?php esc_html_e( 'Stacked bars by form', 'submissions-chart-for-gf' ); ?></option>
+					</select>
 					<h2 id="gfsc-title"></h2>
 				</div>
 				<div id="gfsc-controls">
@@ -57,7 +64,7 @@ $gfsc_forms = GFAPI::get_forms( true, false, 'title', 'ASC' );
 				<canvas id="gfsc-canvas" aria-label="<?php esc_attr_e( 'Submissions chart', 'submissions-chart-for-gf' ); ?>" role="img"></canvas>
 				<div id="gfsc-empty" hidden><?php esc_html_e( 'No submissions found for this period.', 'submissions-chart-for-gf' ); ?></div>
 			</div>
-			<p class="gfsc-hint"><?php esc_html_e( 'Click a bar to see that day’s entries.', 'submissions-chart-for-gf' ); ?></p>
+			<p class="gfsc-hint"><?php esc_html_e( 'Click a day in the chart to see its entries.', 'submissions-chart-for-gf' ); ?></p>
 		</div>
 
 		<div id="gfsc-day" class="gfsc-card" hidden>
@@ -87,45 +94,10 @@ $gfsc_forms = GFAPI::get_forms( true, false, 'title', 'ASC' );
 			<h2 class="gfsc-section-title"><?php esc_html_e( 'Recent Submissions', 'submissions-chart-for-gf' ); ?></h2>
 			<div id="gfsc-recent">
 				<?php
-				foreach ( $gfsc_forms as $gfsc_form ) :
-					$gfsc_recent = GFSC_Data::recent_entries( $gfsc_form );
-					?>
-					<section class="gfsc-card gfsc-recent-card" data-form-id="<?php echo absint( $gfsc_form['id'] ); ?>">
-						<div class="gfsc-card-head">
-							<h3><?php echo esc_html( $gfsc_form['title'] ); ?></h3>
-							<a href="<?php echo esc_url( GFSC_Data::entries_url( $gfsc_form['id'] ) ); ?>">
-								<?php
-								/* translators: %s: total entry count. */
-								echo esc_html( sprintf( _n( 'View %s entry', 'View all %s entries', $gfsc_recent['total'], 'submissions-chart-for-gf' ), number_format_i18n( $gfsc_recent['total'] ) ) );
-								?>
-							</a>
-						</div>
-						<?php if ( $gfsc_recent['entries'] ) : ?>
-							<table class="widefat striped gfsc-table">
-								<thead>
-									<tr>
-										<th scope="col"><?php echo esc_html( $gfsc_recent['field_label'] ); ?></th>
-										<th scope="col" class="gfsc-col-date"><?php esc_html_e( 'Submitted', 'submissions-chart-for-gf' ); ?></th>
-									</tr>
-								</thead>
-								<tbody>
-									<?php foreach ( $gfsc_recent['entries'] as $gfsc_entry ) : ?>
-										<tr>
-											<td>
-												<a href="<?php echo esc_url( $gfsc_entry['url'] ); ?>">
-													<?php echo '' !== $gfsc_entry['summary'] ? esc_html( $gfsc_entry['summary'] ) : esc_html( sprintf( '#%d', $gfsc_entry['id'] ) ); ?>
-												</a>
-											</td>
-											<td class="gfsc-col-date"><?php echo esc_html( $gfsc_entry['date'] ); ?></td>
-										</tr>
-									<?php endforeach; ?>
-								</tbody>
-							</table>
-						<?php else : ?>
-							<p class="gfsc-card-empty"><?php esc_html_e( 'No submissions yet.', 'submissions-chart-for-gf' ); ?></p>
-						<?php endif; ?>
-					</section>
-				<?php endforeach; ?>
+				foreach ( $gfsc_forms as $gfsc_form ) {
+					include GFSC_PLUGIN_DIR . 'includes/views/recent-card.php';
+				}
+				?>
 			</div>
 		<?php endif; ?>
 	</div>

@@ -20,6 +20,7 @@ class GFSC_Admin {
 		add_action( 'admin_enqueue_scripts', array( __CLASS__, 'enqueue_assets' ) );
 		add_action( 'wp_ajax_gfsc_get_data', array( __CLASS__, 'ajax_get_data' ) );
 		add_action( 'wp_ajax_gfsc_get_day', array( __CLASS__, 'ajax_get_day' ) );
+		add_action( 'wp_ajax_gfsc_update_entry', array( __CLASS__, 'ajax_update_entry' ) );
 		add_filter( 'admin_body_class', array( __CLASS__, 'body_class' ) );
 	}
 
@@ -48,15 +49,23 @@ class GFSC_Admin {
 		return is_admin() && isset( $_GET['page'] ) && self::PAGE_SLUG === $_GET['page'];
 	}
 
+	/**
+	 * Version string that changes with the file, so browsers never pair new page
+	 * markup with a cached copy of the old script or stylesheet.
+	 */
+	private static function asset_version( $path ) {
+		return GFSC_VERSION . '.' . filemtime( GFSC_PLUGIN_DIR . $path );
+	}
+
 	public static function enqueue_assets() {
 		if ( ! self::is_chart_page() ) {
 			return;
 		}
 
 		// Reuse Gravity Forms' admin + settings styles for its header and centered page wrapper.
-		wp_enqueue_style( 'gfsc-admin', GFSC_PLUGIN_URL . 'assets/css/admin.css', array( 'gform_admin', 'gform_settings' ), GFSC_VERSION );
+		wp_enqueue_style( 'gfsc-admin', GFSC_PLUGIN_URL . 'assets/css/admin.css', array( 'gform_admin', 'gform_settings' ), self::asset_version( 'assets/css/admin.css' ) );
 		wp_enqueue_script( 'gfsc-chartjs', GFSC_PLUGIN_URL . 'assets/vendor/chartjs/chart.umd.min.js', array(), '4.4.3', true );
-		wp_enqueue_script( 'gfsc-admin', GFSC_PLUGIN_URL . 'assets/js/admin.js', array( 'jquery', 'gfsc-chartjs' ), GFSC_VERSION, true );
+		wp_enqueue_script( 'gfsc-admin', GFSC_PLUGIN_URL . 'assets/js/admin.js', array( 'jquery', 'gfsc-chartjs' ), self::asset_version( 'assets/js/admin.js' ), true );
 
 		$forms = array_map(
 			function ( $form ) {
@@ -88,6 +97,12 @@ class GFSC_Admin {
 					'openEntries' => __( 'Open %s in Entries', 'submissions-chart-for-gf' ),
 					'truncated'   => __( 'Showing the latest %1$d of %2$d. Use the Entries links to see the rest.', 'submissions-chart-for-gf' ),
 					'view'        => __( 'View', 'submissions-chart-for-gf' ),
+					'total'       => __( 'Total', 'submissions-chart-for-gf' ),
+					'otherForms'  => __( 'Other forms', 'submissions-chart-for-gf' ),
+					'movedSpam'   => __( 'Entry marked as spam.', 'submissions-chart-for-gf' ),
+					'movedTrash'  => __( 'Entry moved to the trash.', 'submissions-chart-for-gf' ),
+					'undo'        => __( 'Undo', 'submissions-chart-for-gf' ),
+					'updateError' => __( 'Could not update the entry.', 'submissions-chart-for-gf' ),
 				),
 			)
 		);
@@ -149,6 +164,46 @@ class GFSC_Admin {
 		}
 
 		wp_send_json_success( GFSC_Data::entries_for_day( $form_id, $date ) );
+	}
+
+	/**
+	 * Moves an entry to spam or trash, or back to active for Undo, then returns
+	 * the form's refreshed Recent Submissions card.
+	 */
+	public static function ajax_update_entry() {
+		check_ajax_referer( self::NONCE, 'nonce' );
+
+		// phpcs:disable WordPress.Security.NonceVerification.Missing -- verified above.
+		$entry_id = isset( $_POST['entry_id'] ) ? absint( $_POST['entry_id'] ) : 0;
+		$status   = isset( $_POST['status'] ) ? sanitize_key( wp_unslash( $_POST['status'] ) ) : '';
+		// phpcs:enable
+
+		$entry = GFAPI::get_entry( $entry_id );
+		if ( is_wp_error( $entry ) ) {
+			wp_send_json_error( __( 'Entry not found.', 'submissions-chart-for-gf' ), 404 );
+		}
+
+		// Only active -> spam/trash and spam/trash -> active are valid here.
+		$current = $entry['status'];
+		$valid   = 'active' === $current ? in_array( $status, array( 'spam', 'trash' ), true ) : ( 'active' === $status && in_array( $current, array( 'spam', 'trash' ), true ) );
+		if ( ! $valid ) {
+			wp_send_json_error( __( 'That status change is not allowed.', 'submissions-chart-for-gf' ), 400 );
+		}
+
+		// Trash needs delete rights and spam needs edit rights, in both directions, as on GF's Entries list.
+		$capability = 'trash' === $status || 'trash' === $current ? 'gravityforms_delete_entries' : 'gravityforms_edit_entries';
+		if ( ! GFCommon::current_user_can_any( $capability ) ) {
+			wp_send_json_error( __( 'Unauthorized', 'submissions-chart-for-gf' ), 403 );
+		}
+
+		// Goes through GF's own update, so Akismet feedback and gform_update_status still fire.
+		GFAPI::update_entry_property( $entry_id, 'status', $status );
+
+		$gfsc_form = GFAPI::get_form( $entry['form_id'] );
+		ob_start();
+		include GFSC_PLUGIN_DIR . 'includes/views/recent-card.php';
+
+		wp_send_json_success( array( 'card' => ob_get_clean() ) );
 	}
 
 	/**

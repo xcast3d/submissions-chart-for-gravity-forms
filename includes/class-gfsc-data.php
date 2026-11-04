@@ -11,6 +11,9 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 class GFSC_Data {
 
+	/** Matches the length of SERIES_COLORS in assets/js/admin.js. */
+	const MAX_COLOR_SERIES = 8;
+
 	/**
 	 * Counts active entries per local calendar day.
 	 *
@@ -22,7 +25,10 @@ class GFSC_Data {
 	 * @param int         $form_id Form ID, or 0 for all forms.
 	 * @param string|null $start   Local start date (Y-m-d), inclusive.
 	 * @param string|null $end     Local end date (Y-m-d), inclusive.
-	 * @return array{labels: string[], counts: int[], total: int}
+	 * When $form_id is 0 the result also has per-form `series`, covering only forms
+	 * with entries in the range.
+	 *
+	 * @return array{labels: string[], counts: int[], total: int, series: array[]}
 	 */
 	public static function submissions_by_day( $form_id, $start = null, $end = null ) {
 		global $wpdb;
@@ -50,14 +56,17 @@ class GFSC_Data {
 			$args[]  = ( new DateTime( $end . ' 23:59:59', $site_tz ) )->setTimezone( $utc_tz )->format( 'Y-m-d H:i:s' );
 		}
 
-		$sql = "SELECT date_created FROM {$table} WHERE " . implode( ' AND ', $where );
+		$sql = "SELECT form_id, date_created FROM {$table} WHERE " . implode( ' AND ', $where );
 		// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared, WordPress.DB.DirectDatabaseQuery
-		$rows = $wpdb->get_col( $args ? $wpdb->prepare( $sql, $args ) : $sql );
+		$rows = $wpdb->get_results( $args ? $wpdb->prepare( $sql, $args ) : $sql );
 
-		$map = array();
-		foreach ( $rows as $created ) {
-			$day         = ( new DateTime( $created, $utc_tz ) )->setTimezone( $site_tz )->format( 'Y-m-d' );
+		$map      = array();
+		$form_map = array();
+		foreach ( $rows as $row ) {
+			$day         = ( new DateTime( $row->date_created, $utc_tz ) )->setTimezone( $site_tz )->format( 'Y-m-d' );
 			$map[ $day ] = ( $map[ $day ] ?? 0 ) + 1;
+
+			$form_map[ (int) $row->form_id ][ $day ] = ( $form_map[ (int) $row->form_id ][ $day ] ?? 0 ) + 1;
 		}
 
 		if ( ! $map && ! ( $start && $end ) ) {
@@ -65,6 +74,7 @@ class GFSC_Data {
 				'labels' => array(),
 				'counts' => array(),
 				'total'  => 0,
+				'series' => array(),
 			);
 		}
 
@@ -89,7 +99,77 @@ class GFSC_Data {
 			'labels' => $labels,
 			'counts' => $counts,
 			'total'  => array_sum( $counts ),
+			'series' => $form_id ? array() : self::build_series( $form_map, $labels ),
 		);
+	}
+
+	/**
+	 * Turns form_id => day => count into chart series with a stable color slot.
+	 *
+	 * The slot follows the form, not its rank in the current range, so a form keeps
+	 * its color when the range changes. The palette has MAX_COLOR_SERIES colors: the
+	 * busiest forms get those, in form ID order, and the rest fold into one "other"
+	 * series rather than reusing a color.
+	 */
+	private static function build_series( $form_map, $days ) {
+		$slots  = self::color_slots();
+		$titles = wp_list_pluck( GFAPI::get_forms( true, false ), 'title', 'id' );
+		$series = array();
+		$other  = array_fill( 0, count( $days ), 0 );
+
+		foreach ( $form_map as $id => $day_counts ) {
+			$counts = array();
+			foreach ( $days as $i => $day ) {
+				$counts[ $i ] = $day_counts[ $day ] ?? 0;
+			}
+
+			if ( isset( $slots[ $id ] ) ) {
+				$series[] = array(
+					'id'     => $id,
+					'title'  => $titles[ $id ] ?? '#' . $id,
+					'slot'   => $slots[ $id ],
+					'counts' => $counts,
+				);
+			} else {
+				foreach ( $counts as $i => $count ) {
+					$other[ $i ] += $count;
+				}
+			}
+		}
+
+		usort(
+			$series,
+			function ( $a, $b ) {
+				return $a['slot'] - $b['slot'];
+			}
+		);
+
+		if ( array_sum( $other ) ) {
+			$series[] = array(
+				'id'     => 0,
+				'title'  => '',
+				'slot'   => null,
+				'counts' => $other,
+			);
+		}
+
+		return $series;
+	}
+
+	/**
+	 * @return array<int,int> form_id => palette slot for the busiest forms overall.
+	 */
+	private static function color_slots() {
+		global $wpdb;
+
+		$table = GFFormsModel::get_entry_table_name();
+		$ids   = implode( ',', array_map( 'absint', self::active_form_ids() ) ?: array( 0 ) );
+
+		// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.DirectDatabaseQuery
+		$busiest = array_map( 'intval', $wpdb->get_col( $wpdb->prepare( "SELECT form_id FROM {$table} WHERE status = 'active' AND form_id IN ({$ids}) GROUP BY form_id ORDER BY COUNT(*) DESC, form_id ASC LIMIT %d", self::MAX_COLOR_SERIES ) ) );
+		sort( $busiest );
+
+		return array_flip( $busiest );
 	}
 
 	/**
